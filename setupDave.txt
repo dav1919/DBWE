@@ -1,13 +1,12 @@
-   1 cd .\Documents\
-   2 python --version
-   3 python -m venv DBWE
-   4 cd DBWE
-   5 cd .\Scripts\
-   6 .\Activate.ps1
-   7 cd ..
-   8 pip install -r requirements.txt
-   9 flask db init
-  10 flask db init
-  11 flask db migrate -m "Initial migration"
-  12 flask db upgrade
-  13 flask run
+cd .\OneDrive\Dokumente\Code\
+python --version
+python -m venv DBWE
+cd DBWE
+.\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+
+pip install -r requirements.txt
+flask db init
+flask db migrate
+flask db upgrade
+flask run
