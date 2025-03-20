@@ -62,6 +62,8 @@ def delete_task(id):
     return redirect(url_for('main.dashboard'))
 
 @bp.route('/')
-@login_required
 def index():
-    return redirect(url_for('main.dashboard'))
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+    else:
+        return redirect(url_for('auth.login'))
