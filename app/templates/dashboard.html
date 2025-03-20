@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h1>Deine Tasks (sortiert nach Ablaufdatum)</h1>
+    <a href="{{ url_for('main.create_task') }}" class="btn btn-primary">Neuer Task</a>
+    <hr>
+    {% for task in tasks %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5>{{ task.title }}</h5>
+                <p>{{ task.description }}</p>
+                <p><strong>Ablaufdatum:</strong> {{ task.due_date.strftime('%d.%m.%Y %H:%M') }}</p>
+                <a href="{{ url_for('main.edit_task', id=task.id) }}" class="btn btn-secondary btn-sm">Bearbeiten</a>
+                <form action="{{ url_for('main.delete_task', id=task.id) }}" method="post" style="display:inline;">
+                    <button type="submit" class="btn btn-danger btn-sm">Löschen</button>
+                </form>
+            </div>
+        </div>
+    {% else %}
+        <p>Keine Tasks vorhanden.</p>
+    {% endfor %}
+{% endblock %}
