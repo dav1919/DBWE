@@ -1,26 +1,15 @@
 import logging
 from logging.handlers import SMTPHandler, RotatingFileHandler
 import os
-from flask import Flask, request, current_app
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from flask_mail import Mail
-from flask_moment import Moment
-from flask_babel import Babel, lazy_gettext as _l
+from flask import Flask, request, current_app, url_for  # Explicitly import url_for
 from redis import Redis
 import rq
 from config import Config
+from app.extensions import db, migrate, mail, moment, babel, login_manager
 
 
 def get_locale():
     return request.accept_languages.best_match(current_app.config['LANGUAGES'])
-
-
-db = SQLAlchemy()
-migrate = Migrate()
-mail = Mail()
-moment = Moment()
-babel = Babel()
 
 
 def create_app(config_class=Config):
@@ -32,20 +21,45 @@ def create_app(config_class=Config):
     mail.init_app(app)
     moment.init_app(app)
     babel.init_app(app, locale_selector=get_locale)
+    login_manager.init_app(app)
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        from app.models import User
+        return User.query.get(int(user_id))
+
     app.redis = Redis.from_url(app.config['REDIS_URL'])
     app.task_queue = rq.Queue('prokrastinie-tasks', connection=app.redis)
-
-    from app.errors import bp as errors_bp
-    app.register_blueprint(errors_bp)
 
     from app.main import bp as main_bp
     app.register_blueprint(main_bp)
 
-    from app.cli import bp as cli_bp
-    app.register_blueprint(cli_bp)
+    from app.auth import bp as auth_bp
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+
+    from app.errors import bp as errors_bp
+    app.register_blueprint(errors_bp)
 
     from app.api import bp as api_bp
     app.register_blueprint(api_bp, url_prefix='/api')
+
+    from app.cli import bp as cli_bp
+    app.register_blueprint(cli_bp)
+
+    # Set login_view only after blueprints have been registered, within app context:
+    with app.app_context():
+        login_manager.login_view = 'auth.login'  # type: ignore
+
+    # Print URL Map for debugging:
+    with app.app_context():
+        print("URL Map:")
+        for rule in app.url_map.iter_rules():
+            print(f"  {rule.endpoint}: {rule}")
+
+    # Test view for url_for:
+    @app.route('/test_login_url')
+    def test_login_url():
+        return url_for('auth.login')
 
     if not app.debug and not app.testing:
         if app.config['MAIL_SERVER']:

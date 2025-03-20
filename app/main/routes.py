@@ -1,16 +1,14 @@
 from datetime import datetime, timezone
 from flask import render_template, flash, redirect, url_for, request, g, \
-    current_app
+    current_app, abort
 from flask_login import current_user, login_required
 from flask_babel import _, get_locale
 import sqlalchemy as sa
 from langdetect import detect, LangDetectException
-from app import db
-from app.main.forms import EditProfileForm, EmptyForm, PostForm, SearchForm, \
-    MessageForm
-from app.models import User, Post, Message, Notification
-from app.translate import translate
+from app.extensions import db
 from app.main import bp
+from app.main.forms import EditProfileForm, EmptyForm, PostForm, SearchForm, \
+    MessageForm, TaskForm
 
 
 @bp.before_app_request
@@ -24,17 +22,30 @@ def before_request():
 
 @bp.route('/')
 @bp.route('/index')
-#@login_required
+@login_required
 def index():
-    """
-    Index page route.  Removed user-specific logic.
-    """
-    return render_template('index.html', title='Home')
+    from app.models import Task
+    page = request.args.get('page', 1, type=int)
+    tasks = db.paginate(
+        sa.select(Task).where(
+            Task.user_id == current_user.id,
+            Task.completed == False
+        ).order_by(Task.due_date.asc()),
+        page=page,
+        per_page=current_app.config['TASKS_PER_PAGE'],
+        error_out=False
+    )
+    return render_template('index.html', 
+                         title=_('Home'), 
+                         tasks=tasks.items,
+                         next_url=url_for('main.index', page=tasks.next_num) if tasks.has_next else None,
+                         prev_url=url_for('main.index', page=tasks.prev_num) if tasks.has_prev else None)
 
 
 @bp.route('/explore')
 @login_required
 def explore():
+    from app.models import Post
     page = request.args.get('page', 1, type=int)
     query = sa.select(Post).order_by(Post.timestamp.desc())
     posts = db.paginate(query, page=page,
@@ -52,6 +63,7 @@ def explore():
 @bp.route('/user/<username>')
 @login_required
 def user(username):
+    from app.models import User, Post
     user = db.first_or_404(sa.select(User).where(User.username == username))
     page = request.args.get('page', 1, type=int)
     query = user.posts.select().order_by(Post.timestamp.desc())
@@ -70,6 +82,7 @@ def user(username):
 @bp.route('/user/<username>/popup')
 @login_required
 def user_popup(username):
+    from app.models import User
     user = db.first_or_404(sa.select(User).where(User.username == username))
     form = EmptyForm()
     return render_template('user_popup.html', user=user, form=form)
@@ -95,6 +108,7 @@ def edit_profile():
 @bp.route('/follow/<username>', methods=['POST'])
 @login_required
 def follow(username):
+    from app.models import User
     form = EmptyForm()
     if form.validate_on_submit():
         user = db.session.scalar(
@@ -116,6 +130,7 @@ def follow(username):
 @bp.route('/unfollow/<username>', methods=['POST'])
 @login_required
 def unfollow(username):
+    from app.models import User
     form = EmptyForm()
     if form.validate_on_submit():
         user = db.session.scalar(
@@ -146,6 +161,7 @@ def translate_text():
 @bp.route('/search')
 @login_required
 def search():
+    from app.models import Post
     if not g.search_form.validate():
         return redirect(url_for('main.explore'))
     page = request.args.get('page', 1, type=int)
@@ -162,6 +178,7 @@ def search():
 @bp.route('/send_message/<recipient>', methods=['GET', 'POST'])
 @login_required
 def send_message(recipient):
+    from app.models import User, Message
     user = db.first_or_404(sa.select(User).where(User.username == recipient))
     form = MessageForm()
     if form.validate_on_submit():
@@ -180,6 +197,7 @@ def send_message(recipient):
 @bp.route('/messages')
 @login_required
 def messages():
+    from app.models import Message
     current_user.last_message_read_time = datetime.now(timezone.utc)
     current_user.add_notification('unread_message_count', 0)
     db.session.commit()
@@ -211,6 +229,7 @@ def export_posts():
 @bp.route('/notifications')
 @login_required
 def notifications():
+    from app.models import Notification
     since = request.args.get('since', 0.0, type=float)
     query = current_user.notifications.select().where(
         Notification.timestamp > since).order_by(Notification.timestamp.asc())
@@ -220,3 +239,36 @@ def notifications():
         'data': n.get_data(),
         'timestamp': n.timestamp
     } for n in notifications]
+
+
+@bp.route('/create_task', methods=['GET', 'POST'])
+@login_required
+def create_task():
+    from app.models import Task
+    form = TaskForm()
+    if form.validate_on_submit():
+        task = Task(
+            title=form.title.data,
+            description=form.description.data,
+            due_date=form.due_date.data,
+            priority=int(form.priority.data),
+            category=form.category.data,
+            author=current_user
+        )
+        db.session.add(task)
+        db.session.commit()
+        flash(_('Your task has been created!'))
+        return redirect(url_for('main.index'))
+    return render_template('create_task.html', title=_('Create Task'), form=form)
+
+@bp.route('/task/<int:id>/complete', methods=['POST'])
+@login_required
+def complete_task(id):
+    from app.models import Task
+    task = db.get_or_404(Task, id)
+    if task.author != current_user:
+        abort(403)
+    task.completed = True
+    db.session.commit()
+    flash(_('Task marked as complete!'))
+    return redirect(url_for('main.index'))

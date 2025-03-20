@@ -1,7 +1,7 @@
 import sqlalchemy as sa
 from flask import request, url_for, abort
-from app import db
-from app.models import User
+from app.extensions import db
+# from app.models import User
 from app.api import bp
 from app.api.auth import token_auth
 from app.api.errors import bad_request
@@ -10,12 +10,14 @@ from app.api.errors import bad_request
 @bp.route('/users/<int:id>', methods=['GET'])
 @token_auth.login_required
 def get_user(id):
+    from app.models import User
     return db.get_or_404(User, id).to_dict()
 
 
 @bp.route('/users', methods=['GET'])
 @token_auth.login_required
 def get_users():
+    from app.models import User
     page = request.args.get('page', 1, type=int)
     per_page = min(request.args.get('per_page', 10, type=int), 100)
     return User.to_collection_dict(sa.select(User), page, per_page,
@@ -25,6 +27,7 @@ def get_users():
 @bp.route('/users/<int:id>/followers', methods=['GET'])
 @token_auth.login_required
 def get_followers(id):
+    from app.models import User
     user = db.get_or_404(User, id)
     page = request.args.get('page', 1, type=int)
     per_page = min(request.args.get('per_page', 10, type=int), 100)
@@ -35,6 +38,7 @@ def get_followers(id):
 @bp.route('/users/<int:id>/following', methods=['GET'])
 @token_auth.login_required
 def get_following(id):
+    from app.models import User
     user = db.get_or_404(User, id)
     page = request.args.get('page', 1, type=int)
     per_page = min(request.args.get('per_page', 10, type=int), 100)
@@ -44,6 +48,7 @@ def get_following(id):
 
 @bp.route('/users', methods=['POST'])
 def create_user():
+    from app.models import User
     data = request.get_json()
     if 'username' not in data or 'email' not in data or 'password' not in data:
         return bad_request('must include username, email and password fields')
@@ -64,6 +69,7 @@ def create_user():
 @bp.route('/users/<int:id>', methods=['PUT'])
 @token_auth.login_required
 def update_user(id):
+    from app.models import User
     if token_auth.current_user().id != id:
         abort(403)
     user = db.get_or_404(User, id)

@@ -1,11 +1,12 @@
 from flask import request
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField
-from wtforms.validators import ValidationError, DataRequired, Length
-import sqlalchemy as sa
+from wtforms import StringField, SubmitField, TextAreaField, \
+    PasswordField, BooleanField, SelectField, DateField
+from wtforms.validators import ValidationError, DataRequired, Length, \
+    Email, EqualTo
 from flask_babel import _, lazy_gettext as _l
-from app import db
-from app.models import User
+import sqlalchemy as sa
+from app.extensions import db
 
 
 class EditProfileForm(FlaskForm):
@@ -20,6 +21,7 @@ class EditProfileForm(FlaskForm):
 
     def validate_username(self, username):
         if username.data != self.original_username:
+            from app.models import User
             user = db.session.scalar(sa.select(User).where(
                 User.username == username.data))
             if user is not None:
@@ -51,3 +53,37 @@ class MessageForm(FlaskForm):
     message = TextAreaField(_l('Message'), validators=[
         DataRequired(), Length(min=1, max=140)])
     submit = SubmitField(_l('Submit'))
+
+
+class RegistrationForm(FlaskForm):
+    username = StringField(_l('Username'), validators=[DataRequired()])
+    email = StringField(_l('Email'), validators=[DataRequired(), Email()])
+    password = PasswordField(_l('Password'), validators=[DataRequired()])
+    password2 = PasswordField(
+        _l('Repeat Password'), validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField(_l('Register'))
+
+    def validate_username(self, username):
+        from app.models import User
+        user = User.query.filter_by(username=username.data).first()
+        if user is not None:
+            raise ValidationError(_('Please use a different username.'))
+
+    def validate_email(self, email):
+        from app.models import User
+        user = User.query.filter_by(email=email.data).first()
+        if user is not None:
+            raise ValidationError(_('Please use a different email address.'))
+
+
+class TaskForm(FlaskForm):
+    title = StringField(_l('Title'), validators=[DataRequired()])
+    description = TextAreaField(_l('Description'))
+    due_date = DateField(_l('Due Date'), format='%Y-%m-%d')
+    priority = SelectField(_l('Priority'), choices=[
+        ('1', _l('Low')),
+        ('2', _l('Medium')),
+        ('3', _l('High'))
+    ], validators=[DataRequired()])
+    category = StringField(_l('Category'))
+    submit = SubmitField(_l('Create Task'))

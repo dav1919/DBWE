@@ -2,23 +2,60 @@
 {% import "bootstrap_wtf.html" as wtf %}
 
 {% block content %}
-    <h1>{{ _('Hi, %(username)s!', username=current_user.username) }}</h1>
-    {% if form %}
-    {{ wtf.quick_form(form) }}
+    <h1>{{ _('Your Tasks') }}</h1>
+    <a href="{{ url_for('main.create_task') }}" class="btn btn-primary mb-3">
+        {{ _('Create New Task') }}
+    </a>
+    
+    {% if tasks %}
+    <div class="row">
+        {% for task in tasks %}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ task.title }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        Priority: 
+                        {% if task.priority == 3 %}
+                            <span class="badge bg-danger">High</span>
+                        {% elif task.priority == 2 %}
+                            <span class="badge bg-warning">Medium</span>
+                        {% else %}
+                            <span class="badge bg-info">Low</span>
+                        {% endif %}
+                    </h6>
+                    <p class="card-text">{{ task.description }}</p>
+                    {% if task.due_date %}
+                    <p class="card-text">
+                        <small class="text-muted">Due: {{ moment(task.due_date).format('LL') }}</small>
+                    </p>
+                    {% endif %}
+                    {% if not task.completed %}
+                    <form action="{{ url_for('main.complete_task', id=task.id) }}" method="post">
+                        <button type="submit" class="btn btn-success btn-sm">
+                            {{ _('Mark Complete') }}
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">{{ _('No tasks yet!') }}</div>
     {% endif %}
-    {% for post in posts %}
-        {% include '_post.html' %}
-    {% endfor %}
-    <nav aria-label="Post navigation">
+    
+    <nav aria-label="Task navigation">
         <ul class="pagination">
             <li class="page-item{% if not prev_url %} disabled{% endif %}">
                 <a class="page-link" href="{{ prev_url }}">
-                    <span aria-hidden="true">&larr;</span> {{ _('Newer posts') }}
+                    <span aria-hidden="true">&larr;</span> {{ _('Newer tasks') }}
                 </a>
             </li>
             <li class="page-item{% if not next_url %} disabled{% endif %}">
                 <a class="page-link" href="{{ next_url }}">
-                    {{ _('Older posts') }} <span aria-hidden="true">&rarr;</span>
+                    {{ _('Older tasks') }} <span aria-hidden="true">&rarr;</span>
                 </a>
             </li>
         </ul>
