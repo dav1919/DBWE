@@ -1,11 +1,11 @@
-from app.main.forms import TaskForm
-from app.models import Task
-from flask import render_template, flash, redirect, url_for, request
+from flask import render_template, flash, redirect, url_for, request, Blueprint
 from flask_login import login_required, current_user
 from app import db
-from datetime import datetime
+from app.models import Task
+from app.main.forms import TaskForm
 
-# Dashboard (Tasks anzeigen)
+bp = Blueprint('main', __name__)
+
 @bp.route('/dashboard')
 @login_required
 def dashboard():
@@ -59,4 +59,9 @@ def delete_task(id):
     db.session.delete(task)
     db.session.commit()
     flash('Task gelöscht.')
+    return redirect(url_for('main.dashboard'))
+
+@bp.route('/')
+@login_required
+def index():
     return redirect(url_for('main.dashboard'))
