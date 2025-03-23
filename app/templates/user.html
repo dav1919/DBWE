@@ -6,19 +6,37 @@
             <td width="256px"><img src="{{ user.avatar(256) }}"></td>
             <td>
                 <h1>{{ _('User') }}: {{ user.username }}</h1>
-               
-                {# Keine Posts, darum Tasks anzeigen: #}
+
                 {% if tasks %}
                 <h2>{{ _('Tasks')}}:</h2>
-                    <ul>
-                      {% for task in tasks %}
-                      <li>
-                        {{ task.title }} 
-                        - {{ moment(task.due_date).format('LLL') }}
-                        {% if task.completed %}- <span class="badge rounded-pill text-bg-success">{{ _('Completed') }}</span>{% endif %}
-                        </li>
-                      {% endfor %}
-                    </ul>
+                    {% for task in tasks %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ task.title }}
+                              {% if task.completed %}
+                              <span class="badge rounded-pill text-bg-success">{{_('Completed')}}</span>
+                              {% else %}
+                              <span class="badge rounded-pill text-bg-primary">{{_('Pending')}}</span>
+                              {% endif %}
+                            </h5>
+                            <h6 class="card-subtitle mb-2 text-body-secondary">
+                              {{ moment(task.due_date).format('LLL') }}</h6>
+                            <p class="card-text">{{ task.description }}</p>
+
+                            <a href="{{ url_for('main.edit_task', task_id=task.id) }}" class="btn btn-secondary">{{ _('Edit') }}</a>
+
+
+                            <form action="{{ url_for('main.complete_task', task_id=task.id) }}" method="post" style="display: inline;">
+                                <input type="submit" value="{% if task.completed %}{{ _('Mark as Pending') }}{% else %}{{ _('Mark as Complete') }}{% endif %}"
+                                class="btn btn-{% if task.completed %}warning{% else %}success{% endif %}">
+                            </form>
+
+                            <form action="{{ url_for('main.delete_task', task_id=task.id)}}" method="post" style="display: inline;">
+                              <input type="submit" value="{{_('Delete')}}" class = "btn btn-danger">
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
                 {% else %}
                     <p>{{ _('No tasks yet.') }}</p>
                 {% endif %}
