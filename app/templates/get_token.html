@@ -4,13 +4,106 @@
     <h1>Your API Token</h1>
     <p>Your API token is:</p>
     <p><strong>{{ token }}</strong></p>
-    <p>Use this token in your API requests by adding an `Authorization` header:</p>
+    <p>Use this token in your API requests by adding an <code>Authorization</code> header:</p>
     <pre>Authorization: Bearer {{ token }}</pre>
+
+    <h2>API Usage Examples</h2>
+
+    <p>This API allows you to retrieve all tasks associated with your account. There is currently only one endpoint:</p>
+
+    <pre>/api/tasks (GET)</pre>
+
+   <p>
+   This api endpoint is only designed for to display tasks. Its designed as read only. You cannot do anything more then to
+    retrieve your tasks. Any write action (like adding a new tasks) does only work via the webinterface, to do so go to the main page.
+   </p>
+
+    <h3>Using `curl` (Cross-Platform)</h3>
+
+    <p><code>curl</code> is a command-line tool available on Linux, macOS, and often Windows (through tools like Git Bash or WSL). It's a standard tool for interacting with APIs.</p>
+
+    <pre>
+curl -H "Authorization: Bearer {{ token }}" http://127.0.0.1:5000/api/tasks
+    </pre>
+
+    <p>
+        <strong>Explanation:</strong>
+    </p>
+    <ul>
+        <li><code>curl</code>:  The command to run.</li>
+        <li><code>-H "Authorization: Bearer {{ token }}"</code>:  This adds the <code>Authorization</code> header with your token.  <strong>Replace <code>{{ token }}</code> with your *actual* token when you run the command.</strong> This part is crucial for authentication.</li>
+        <li><code>http://127.0.0.1:5000/api/tasks</code>:  This is the API endpoint URL.  Adjust the `http://127.0.0.1:5000` part if your Flask app runs on a different address or port.</li>
+    </ul>
+
+    <h3>Using PowerShell (Windows)</h3>
+
+     <p>PowerShell is the standard command-line shell on Windows.</p>
+
+    <pre>
+$token = "<your_api_token>"  # Replace <your_api_token> with your actual token
+$baseUrl = "http://127.0.0.1:5000"
+$response = Invoke-WebRequest -Uri "$baseUrl/api/tasks" -Headers @{Authorization = "Bearer $token"}
+$response.Content | ConvertFrom-Json
+    </pre>
+    <p>Or, if you prefer a one-liner:</p>
+    <pre>
+Invoke-WebRequest -Uri "http://127.0.0.1:5000/api/tasks" -Headers @{Authorization = "Bearer <your_api_token>"} | ConvertFrom-Json
+</pre>
+
+
+    <p>
+        <strong>Explanation:</strong>
+    </p>
+    <ul>
+        <li><code>$token = "<your_api_token>"</code>: This defines a variable to store your token. <strong>Replace <code><your_api_token></code> with your actual token.</strong> Using a variable is good practice.</li>
+        <li><code>$baseUrl = "http://127.0.0.1:5000"</code>: This is the base URL of your Flask app.  Adjust if necessary.</li>
+        <li><code>Invoke-WebRequest -Uri "$baseUrl/api/tasks" ...</code>:  This is the main command to make the API request.</li>
+        <li><code>-Headers @{Authorization = "Bearer $token"}</code>:  This adds the `Authorization` header.</li>
+        <li><code>$response.Content | ConvertFrom-Json</code>: This takes the raw JSON response (<code>$response.Content</code>) and converts it into a nicely formatted PowerShell object, making it easy to read in the console.</li>
+    </ul>
 
     <p><strong>Important Security Notes:</strong></p>
     <ul>
-        <li><strong>Never share this token.</strong> It grants full access to your account.</li>
-        <li>There's currently no web interface to revoke this specific token.  Revocation requires database modification.</li>
+        <li><strong>Never share this token.</strong> It grants full access to your account's tasks.</li>
+        <li>There is currently no way to revoke this specific token through the web interface. Revocation requires database modification.</li>
          <li>It is *highly recommended* to use expiring tokens and refresh them regularly for any production environment. "Forever" tokens are suitable *only* for limited testing or very specific, controlled situations.</li>
     </ul>
+
+    <p>
+        <strong>API Response:</strong>
+    </p>
+<pre>
+{{ '{
+  "_links": {
+    "next": null,
+    "prev": null,
+    "self": "/api/tasks?page=1&per_page=10"
+  },
+  "_meta": {
+    "page": 1,
+    "per_page": 10,
+    "total_items": 2, //example value
+    "total_pages": 1 //example value
+  },
+  "items": [
+    {
+      "completed": false, //example value
+      "description": "asdasd", //example value
+      "due_date": "2025-03-23T00:00:00Z", //example value
+      "id": 2, //example value
+      "title": "asdas" //example value
+    },
+    {
+      "completed": false, //example value
+      "description": "asdasd", //example value
+      "due_date": "2025-03-28T00:00:00Z",//example value
+      "id": 1, //example value
+      "title": "asdas" //example value
+    }
+  ]
+}' }}
+    </pre>
+<p>
+This is what a typical api respond should look like. `_links`: Includes links to different pages if exist.`_meta`: Includes the total pages, the total items and the current page. And `items`, of course, shows an example task object. It just helps to check if you did it right and helps understanding the api.
+</p>
 {% endblock %}

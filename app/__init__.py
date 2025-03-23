@@ -57,9 +57,8 @@ def create_app(config_class=Config):
     #from app.cli import bp as cli_bp #Keine Sprachdateien mehr benÃ¶tigt
     #app.register_blueprint(cli_bp)
 
-    # API Blueprint (optional, falls spÃ¤ter benÃ¶tigt)
-    #from app.api import bp as api_bp
-    #app.register_blueprint(api_bp, url_prefix='/api')
+    from app.api import bp as api_bp #Import here
+    app.register_blueprint(api_bp, url_prefix='/api') #Register
 
 
 
