@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from hashlib import md5
 import sqlalchemy as sa
 import sqlalchemy.orm as so
@@ -38,7 +38,7 @@ class Task(db.Model):
     completed: so.Mapped[bool] = so.mapped_column(default=False)
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
     timestamp: so.Mapped[datetime] = so.mapped_column(
-           index=True, default=lambda: datetime.now(timezone.utc))
+           index=True, default=lambda: datetime.now())
     user: so.Mapped[User] = so.relationship(back_populates='tasks')
 
     def __repr__(self):

@@ -1,8 +1,9 @@
-from datetime import datetime, timezone
-from flask import render_template, flash, redirect, url_for, request, g
+from datetime import datetime, date, time, timezone  # time hinzugefügt
+from flask import render_template, flash, redirect, url_for, request, g, current_app
 from flask_login import current_user, login_required
 from flask_babel import _
 import sqlalchemy as sa
+from app import get_locale
 from app import db
 from app.main.forms import TaskForm, EditTaskForm
 from app.models import User, Task
@@ -17,16 +18,26 @@ def before_request():
 
 def create_task(form):
     """Erstellt einen neuen Task."""
+    due_datetime = datetime.combine(form.due_date.data,
+                                    form.due_time.data if form.due_time.data else time(0,0))
     task = Task(title=form.title.data, description=form.description.data,
-                due_date=form.due_date.data, user=current_user)
+                due_date=due_datetime, user=current_user)
     db.session.add(task)
     db.session.commit()
     return task
 
+
 def update_task(task, form):
     """Aktualisiert einen vorhandenen Task."""
-    form.populate_obj(task) # Aktualisiert das task objekt.
+    due_datetime = datetime.combine(form.due_date.data,
+                                    form.due_time.data if form.due_time.data else time(0,0))
+
+    task.title = form.title.data
+    task.description = form.description.data
+    task.due_date = due_datetime
+    task.completed = form.completed.data
     db.session.commit()
+
 
 @bp.route('/', methods=['GET', 'POST'])
 @bp.route('/index', methods=['GET', 'POST'])
@@ -49,8 +60,8 @@ def index():
         if tasks.has_prev else None
 
     return render_template('index.html', title=_('Home'), form=form,
-                           tasks=tasks.items, next_url=next_url,
-                           prev_url=prev_url)
+                            tasks=tasks.items, next_url=next_url,
+                            prev_url=prev_url)
 
 
 @bp.route('/task/<int:task_id>/edit', methods=['GET', 'POST'])
@@ -61,16 +72,17 @@ def edit_task(task_id):
         flash(_('You cannot edit this task.'))
         return redirect(url_for('main.index'))
 
-    form = EditTaskForm(obj=task)
+    form = EditTaskForm(obj=task)  # Vorbelegen der Formulardaten
     if form.validate_on_submit():
-        update_task(task, form) # Funktionsaufruf
+        update_task(task, form)
         flash(_('Your task has been updated!'))
         return redirect(url_for('main.index'))
 
     return render_template('edit_task.html', title=_('Edit Task'), form=form, task=task)
+
 @bp.route('/task/<int:task_id>/complete', methods=['POST'])
-  @login_required
-  def complete_task(task_id):
+@login_required
+def complete_task(task_id):
       task = db.get_or_404(Task, task_id)
       if task.user != current_user:
           flash(_('You cannot complete this task.'))
@@ -81,9 +93,9 @@ def edit_task(task_id):
       flash(_('Task status updated.'))
       return redirect(url_for('main.index'))
   
-  @bp.route('/task/<int:task_id>/delete', methods=['POST'])
-  @login_required
-  def delete_task(task_id):
+@bp.route('/task/<int:task_id>/delete', methods=['POST'])
+@login_required
+def delete_task(task_id):
       task = db.get_or_404(Task, task_id)
       if task.user != current_user:
           flash(_('You cannot delete this task.'))
@@ -95,9 +107,9 @@ def edit_task(task_id):
       return redirect(url_for('main.index'))
   
   
-  @bp.route('/user/<username>')
-  @login_required
-  def user(username):
+@bp.route('/user/<username>')
+@login_required
+def user(username):
       user = db.first_or_404(sa.select(User).where(User.username == username))
       #Keine Posts, darum auch tasks anzeigen:
       page = request.args.get('page', 1, type=int)
@@ -106,9 +118,8 @@ def edit_task(task_id):
                           per_page=current_app.config['POSTS_PER_PAGE'],
                           error_out=False)
       next_url = url_for('main.user', username=user.username,
-                          page=tasks.next_num) if tasks.has_next else None
+                           page=tasks.next_num) if tasks.has_next else None
       prev_url = url_for('main.user', username=user.username,
-                          page=tasks.prev_num) if tasks.has_prev else None
+                           page=tasks.prev_num) if tasks.has_prev else None
       return render_template('user.html', user=user, tasks=tasks.items,
                              next_url=next_url, prev_url=prev_url)
-  

@@ -1,6 +1,7 @@
 import logging
 from logging.handlers import SMTPHandler, RotatingFileHandler  # SMTPHandler entfernt
 import os
+from datetime import datetime  # Importiere datetime
 from flask import Flask, request, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -53,12 +54,13 @@ def create_app(config_class=Config):
     from app.main import bp as main_bp
     app.register_blueprint(main_bp)
 
-    #from app.cli import bp as cli_bp #Keine Sprachdateien mehr benötigt
+    #from app.cli import bp as cli_bp #Keine Sprachdateien mehr benÃ¶tigt
     #app.register_blueprint(cli_bp)
 
-    # API Blueprint (optional, falls später benötigt)
+    # API Blueprint (optional, falls spÃ¤ter benÃ¶tigt)
     #from app.api import bp as api_bp
     #app.register_blueprint(api_bp, url_prefix='/api')
+
 
 
     # Logging (ohne Mail-Versand)
@@ -80,6 +82,9 @@ def create_app(config_class=Config):
 
         app.logger.setLevel(logging.INFO)
         app.logger.info('ProkrastiNie startup')
+    @app.context_processor
+    def inject_datetime():
+        return dict(datetime=datetime)
 
     return app
 
