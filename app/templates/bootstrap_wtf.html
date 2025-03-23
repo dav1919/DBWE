@@ -27,6 +27,32 @@
     <div class="invalid-feedback">{{ error }}</div>
     {%- endfor %}
   </div>
+
+  {%- elif field.type == 'DateField' %}
+    <div class="mb-3">
+        {{ field.label(class='form-label') }}
+         {% if autofocus %}
+            {{ field(class='form-control' + (' is-invalid' if field.errors else ''), autofocus=True) }}
+          {% else %}
+             {{ field(class='form-control' + (' is-invalid' if field.errors else '')) }}
+           {% endif %}
+       {%- for error in field.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+       {%- endfor %}
+    </div>
+  {%- elif field.type == 'TimeField' %}
+    <div class="mb-3">
+        {{ field.label(class='form-label') }}
+        {% if autofocus %}
+           {{ field(class='form-control' + (' is-invalid' if field.errors else ''), autofocus=True) }}
+        {% else %}
+            {{ field(class='form-control' + (' is-invalid' if field.errors else '')) }}
+        {% endif %}
+        {%- for error in field.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+        {%- endfor %}
+    </div>
+
   {%- elif field.type == 'SubmitField' %}
   {{ field(class='btn btn-primary mb-3') }}
   {%- else %}
@@ -65,6 +91,6 @@
       {{ form_field(field, ns.first_field) }}
       {% set ns.first_field = false %}
     {%- endif %}
-  {%- endfor %}  
+  {%- endfor %}
 </form>
 {% endmacro %}
