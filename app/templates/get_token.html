@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Your API Token</h1>
+    <p>Your API token is:</p>
+    <p><strong>{{ token }}</strong></p>
+    <p>Use this token in your API requests by adding an `Authorization` header:</p>
+    <pre>Authorization: Bearer {{ token }}</pre>
+
+    <p><strong>Important Security Notes:</strong></p>
+    <ul>
+        <li><strong>Never share this token.</strong> It grants full access to your account.</li>
+        <li>There's currently no web interface to revoke this specific token.  Revocation requires database modification.</li>
+         <li>It is *highly recommended* to use expiring tokens and refresh them regularly for any production environment. "Forever" tokens are suitable *only* for limited testing or very specific, controlled situations.</li>
+    </ul>
+{% endblock %}

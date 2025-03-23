@@ -1,0 +1,12 @@
+cd .\OneDrive\Dokumente\Code\
+python --version
+python -m venv DBWE
+cd DBWE
+.\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+
+pip install -r requirements.txt
+flask db init
+flask db migrate
+flask db upgrade
+flask run

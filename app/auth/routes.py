@@ -1,7 +1,6 @@
-# Bleibt größtenteils unverändert. Entfernen Sie reset_password_request und zugehörige Funktionen/Formulare.
 from flask import render_template, redirect, url_for, flash, request
 from urllib.parse import urlsplit
-from flask_login import login_user, logout_user, current_user
+from flask_login import login_user, logout_user, current_user, login_required
 from flask_babel import _
 import sqlalchemy as sa
 from app import db
@@ -25,7 +24,7 @@ def login():
         if not next_page or urlsplit(next_page).netloc != '':
             next_page = url_for('main.index')
         return redirect(next_page)
-    return render_template('auth/login.html', title=_('Sign In'), form=form)
+    return render_template('auth/login.html', title=_('Sign In'), form=form)  #Uses existing
 
 @bp.route('/logout')
 def logout():
@@ -40,9 +39,16 @@ def register():
     if form.validate_on_submit():
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
+        user.get_token()  # Generate the forever token.
         db.session.add(user)
         db.session.commit()
         flash(_('Congratulations, you are now a registered user!'))
         return redirect(url_for('auth.login'))
-    return render_template('auth/register.html', title=_('Register'),
-                           form=form)
+    return render_template('auth/register.html', title=_('Register'), form=form) # Uses existing one
+
+@bp.route('/get_token')
+@login_required
+def get_token():
+    token = current_user.get_token()
+    db.session.commit() # To persist the changes.
+    return render_template('get_token.html', token=token)  # Use top-level templates

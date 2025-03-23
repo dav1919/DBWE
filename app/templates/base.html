@@ -40,6 +40,10 @@
             <li class="nav-item">
               <a class="nav-link" aria-current="page" href="{{ url_for('main.user', username=current_user.username) }}">{{ _('Profile') }}</a>
             </li>
+             <!-- Add the new tab HERE -->
+             <li class="nav-item">
+                 <a class="nav-link" href="{{ url_for('auth.get_token') }}">API Token</a>
+              </li>
             <li class="nav-item">
               <a class="nav-link" aria-current="page" href="{{ url_for('auth.logout') }}">{{ _('Logout') }}</a>
             </li>
