@@ -1,21 +1,32 @@
 from datetime import datetime, timezone
-from flask import render_template, flash, redirect, url_for, request
+from flask import render_template, flash, redirect, url_for, request, g
 from flask_login import current_user, login_required
 from flask_babel import _
 import sqlalchemy as sa
 from app import db
 from app.main.forms import TaskForm, EditTaskForm
-from app.models import User, Task  # Nur User und Task importieren
+from app.models import User, Task
 from app.main import bp
 
 @bp.before_app_request
-  def before_request():
+def before_request():
     if current_user.is_authenticated:
-         current_user.last_seen = datetime.now(timezone.utc)
-         db.session.commit()
-         #g.search_form = SearchForm() # Suchformular nicht mehr benötigt.
-     g.locale = str(get_locale()) # Wird nicht benötigt.
+        current_user.last_seen = datetime.now(timezone.utc)
+        db.session.commit()
+    g.locale = str(get_locale()) # Diese Zeile ist wichtig!
 
+def create_task(form):
+    """Erstellt einen neuen Task."""
+    task = Task(title=form.title.data, description=form.description.data,
+                due_date=form.due_date.data, user=current_user)
+    db.session.add(task)
+    db.session.commit()
+    return task
+
+def update_task(task, form):
+    """Aktualisiert einen vorhandenen Task."""
+    form.populate_obj(task) # Aktualisiert das task objekt.
+    db.session.commit()
 
 @bp.route('/', methods=['GET', 'POST'])
 @bp.route('/index', methods=['GET', 'POST'])
@@ -23,10 +34,7 @@ from app.main import bp
 def index():
     form = TaskForm()
     if form.validate_on_submit():
-        task = Task(title=form.title.data, description=form.description.data,
-                    due_date=form.due_date.data, user=current_user)
-        db.session.add(task)
-        db.session.commit()
+        create_task(form) # Funktionsaufruf
         flash(_('Your task has been created!'))
         return redirect(url_for('main.index'))
 
@@ -49,60 +57,58 @@ def index():
 @login_required
 def edit_task(task_id):
     task = db.get_or_404(Task, task_id)
-    if task.user != current_user:  # Stelle sicher, dass nur der Ersteller bearbeiten kann.
+    if task.user != current_user:
         flash(_('You cannot edit this task.'))
         return redirect(url_for('main.index'))
-    
-    form = EditTaskForm(obj=task) #Vorausfüllen
+
+    form = EditTaskForm(obj=task)
     if form.validate_on_submit():
-        form.populate_obj(task) # Aktualisiert das task objekt.
-        db.session.commit()
+        update_task(task, form) # Funktionsaufruf
         flash(_('Your task has been updated!'))
         return redirect(url_for('main.index'))
-    
+
     return render_template('edit_task.html', title=_('Edit Task'), form=form, task=task)
-
-
 @bp.route('/task/<int:task_id>/complete', methods=['POST'])
-@login_required
-def complete_task(task_id):
-    task = db.get_or_404(Task, task_id)
-    if task.user != current_user:
-        flash(_('You cannot complete this task.'))
-        return redirect(url_for('main.index'))
-    
-    task.completed = not task.completed  # Toggle den Status
-    db.session.commit()
-    flash(_('Task status updated.'))
-    return redirect(url_for('main.index'))
-
-@bp.route('/task/<int:task_id>/delete', methods=['POST'])
-@login_required
-def delete_task(task_id):
-    task = db.get_or_404(Task, task_id)
-    if task.user != current_user:
-        flash(_('You cannot delete this task.'))
-        return redirect(url_for('main.index'))
-
-    db.session.delete(task)
-    db.session.commit()
-    flash(_('Task deleted.'))
-    return redirect(url_for('main.index'))
-
-
-@bp.route('/user/<username>')
-@login_required
-def user(username):
-    user = db.first_or_404(sa.select(User).where(User.username == username))
-    #Keine Posts, darum auch tasks anzeigen:
-    page = request.args.get('page', 1, type=int)
-    query = user.tasks.select().order_by(Task.due_date.asc())  # Nach Fälligkeitsdatum sortieren
-    tasks = db.paginate(query, page=page,
-                        per_page=current_app.config['POSTS_PER_PAGE'],
-                        error_out=False)
-    next_url = url_for('main.user', username=user.username,
-                        page=tasks.next_num) if tasks.has_next else None
-    prev_url = url_for('main.user', username=user.username,
-                        page=tasks.prev_num) if tasks.has_prev else None
-    return render_template('user.html', user=user, tasks=tasks.items,
-                           next_url=next_url, prev_url=prev_url)
+  @login_required
+  def complete_task(task_id):
+      task = db.get_or_404(Task, task_id)
+      if task.user != current_user:
+          flash(_('You cannot complete this task.'))
+          return redirect(url_for('main.index'))
+  
+      task.completed = not task.completed  # Toggle den Status
+      db.session.commit()
+      flash(_('Task status updated.'))
+      return redirect(url_for('main.index'))
+  
+  @bp.route('/task/<int:task_id>/delete', methods=['POST'])
+  @login_required
+  def delete_task(task_id):
+      task = db.get_or_404(Task, task_id)
+      if task.user != current_user:
+          flash(_('You cannot delete this task.'))
+          return redirect(url_for('main.index'))
+  
+      db.session.delete(task)
+      db.session.commit()
+      flash(_('Task deleted.'))
+      return redirect(url_for('main.index'))
+  
+  
+  @bp.route('/user/<username>')
+  @login_required
+  def user(username):
+      user = db.first_or_404(sa.select(User).where(User.username == username))
+      #Keine Posts, darum auch tasks anzeigen:
+      page = request.args.get('page', 1, type=int)
+      query = user.tasks.select().order_by(Task.due_date.asc())  # Nach Fälligkeitsdatum sortieren
+      tasks = db.paginate(query, page=page,
+                          per_page=current_app.config['POSTS_PER_PAGE'],
+                          error_out=False)
+      next_url = url_for('main.user', username=user.username,
+                          page=tasks.next_num) if tasks.has_next else None
+      prev_url = url_for('main.user', username=user.username,
+                          page=tasks.prev_num) if tasks.has_prev else None
+      return render_template('user.html', user=user, tasks=tasks.items,
+                             next_url=next_url, prev_url=prev_url)
+  
