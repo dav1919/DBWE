@@ -1,26 +1,76 @@
+<!-- index.html (und ähnlich in edit_task.html) -->
+
 {% extends "base.html" %}
 {% import "bootstrap_wtf.html" as wtf %}
 
 {% block content %}
-    <h1>{{ _('Hi, %(username)s!', username=current_user.username) }}</h1>
-    {% if form %}
-    {{ wtf.quick_form(form) }}
-    {% endif %}
-    {% for post in posts %}
-        {% include '_post.html' %}
-    {% endfor %}
-    <nav aria-label="Post navigation">
-        <ul class="pagination">
-            <li class="page-item{% if not prev_url %} disabled{% endif %}">
-                <a class="page-link" href="{{ prev_url }}">
-                    <span aria-hidden="true">&larr;</span> {{ _('Newer posts') }}
-                </a>
-            </li>
-            <li class="page-item{% if not next_url %} disabled{% endif %}">
-                <a class="page-link" href="{{ next_url }}">
-                    {{ _('Older posts') }} <span aria-hidden="true">&rarr;</span>
-                </a>
-            </li>
-        </ul>
-    </nav>
+<div class="px-4 py-3 bg-light rounded">
+  <h1>{{ _('Hi, %(username)s!', username=current_user.username) }}</h1>
+</div>
+
+
+<h2>{{ _('Create a New Task') }}</h2>
+{{ wtf.quick_form(form) }}
+
+<h2>{{ _('Your Tasks') }}</h2>
+{% for task in tasks %}
+<div class="card">
+  <div class="card-body">
+    <h5 class="card-title">{{ task.title }}
+      {% if task.completed %}
+      <span class="badge rounded-pill text-bg-success">{{_('Completed')}}</span>
+      {% else %}
+      <span class="badge rounded-pill text-bg-primary">{{_('Pending')}}</span>
+      {% endif %}
+    </h5>
+     <h6 class="card-subtitle mb-2 text-body-secondary">
+          {{ moment(task.due_date).format('L') }} <!-- Zeigt nur das Datum -->
+          {% if task.due_date.time() != None %}  <!-- Zeigt die Zeit nur an, wenn sie nicht None ist -->
+            {{ moment(task.due_date).format('LT') }}
+          {% endif %}
+        </h6>
+    <p class="card-text">{{ task.description }}</p>
+
+    <a href="{{ url_for('main.edit_task', task_id=task.id) }}" class="btn btn-secondary">{{ _('Edit') }}
+      <i class="fa-solid fa-pen-to-square"></i>
+    </a>
+
+
+    <form action="{{ url_for('main.complete_task', task_id=task.id) }}" method="post" style="display: inline;">
+        <button type = "submit" class="btn btn-{% if task.completed %}warning{% else %}success{% endif %}">
+            {% if task.completed %}
+                {{ _('Mark as Pending') }}
+                 <i class="fa-solid fa-rotate-left"></i>
+            {% else %}
+                {{ _('Mark as Complete') }}
+                <i class="fa-solid fa-check"></i>
+            {% endif %}
+        </button>
+    </form>
+
+    <form action="{{ url_for('main.delete_task', task_id=task.id)}}" method="post" style="display: inline;">
+      <button type = "submit" class = "btn btn-danger">
+          {{_('Delete')}}
+           <i class="fa-solid fa-trash-can"></i>
+      </button>
+
+    </form>
+  </div>
+</div>
+{% endfor %}
+
+<nav aria-label="Task navigation">
+  <ul class="pagination">
+    <li class="page-item{% if not prev_url %} disabled{% endif %}">
+      <a class="page-link" href="{{ prev_url or '#' }}">
+        <span aria-hidden="true">←</span> {{ _('Previous') }}
+      </a>
+    </li>
+    <li class="page-item{% if not next_url %} disabled{% endif %}">
+      <a class="page-link" href="{{ next_url or '#' }}">
+        {{ _('Next') }} <span aria-hidden="true">→</span>
+      </a>
+    </li>
+  </ul>
+</nav>
 {% endblock %}
