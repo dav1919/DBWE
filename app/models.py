@@ -15,7 +15,7 @@ class User(UserMixin, db.Model):
     email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
     password_hash: so.Mapped[str] = so.mapped_column(sa.String(256))
     tasks: so.WriteOnlyMapped['Task'] = so.relationship(back_populates='user')
-    token: so.Mapped[str] = so.mapped_column(sa.String(32), index=True, unique=True, nullable=True)
+    token: so.Mapped[str] = so.mapped_column(sa.String(128), index=True, unique=True, nullable=True)
     token_expiration: so.Mapped[datetime] = so.mapped_column(nullable=True)
 
     def __repr__(self):
